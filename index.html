@@ -9,12 +9,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script>
+        // Initialize EmailJS with your public key
         (function() {
-            emailjs.init("y8jpVWYJ0ClY0Zkcp");
+            // Replace this with your actual EmailJS public key
+            emailjs.init("YOUR_PUBLIC_KEY");
         })();
-        tailwind.config = { darkMode: 'class' }
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -67,6 +68,53 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased">
+    <!-- EmailJS Setup Modal -->
+    <div id="emailjsSetupModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+        <div class="bg-white max-w-lg w-full rounded-2xl shadow-2xl p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-cyan-100 text-cyan-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-800">EmailJS Configuration</h3>
+                <p class="text-slate-500 mt-2">Enter your EmailJS credentials to send real invoices</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">EmailJS Public Key</label>
+                    <input type="text" id="emailjsPublicKey" placeholder="e.g., XxXxXxXxXxXxXxXxX" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm">
+                    <p class="text-xs text-slate-400 mt-1">Find this in EmailJS Dashboard → Account</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Service ID</label>
+                    <input type="text" id="emailjsServiceId" placeholder="e.g., service_abc123" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm">
+                    <p class="text-xs text-slate-400 mt-1">From Email Services in your dashboard</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Template ID</label>
+                    <input type="text" id="emailjsTemplateId" placeholder="e.g., template_xyz789" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono text-sm">
+                    <p class="text-xs text-slate-400 mt-1">From Email Templates in your dashboard</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p class="text-sm text-amber-800">
+                    <strong>Template Variables Required:</strong><br>
+                    {{to_email}}, {{client_name}}, {{invoice_id}}, {{amount}}, {{due_date}}, {{company_name}}, {{pdf_url}} or {{invoice_html}}
+                </p>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button onclick="skipEmailSetup()" class="flex-1 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition font-medium">
+                    Skip for Now
+                </button>
+                <button onclick="saveEmailJSConfig()" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-lg transition">
+                    Save & Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 z-50 flex flex-col">
         <div class="p-6 border-b border-slate-100">
@@ -95,9 +143,12 @@
 
         <div class="p-4 border-t border-slate-100">
             <div class="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl p-4 text-white">
-                <p class="text-xs font-medium opacity-90">Pro Plan</p>
-                <p class="text-sm font-semibold mt-1">Unlimited Invoices</p>
-                <button class="mt-3 w-full py-2 bg-white/20 rounded-lg text-xs font-medium hover:bg-white/30 transition">Upgrade</button>
+                <p class="text-xs font-medium opacity-90">Email Status</p>
+                <p id="emailStatusText" class="text-sm font-semibold mt-1 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                    Not Configured
+                </p>
+                <button onclick="showEmailJSModal()" class="mt-3 w-full py-2 bg-white/20 rounded-lg text-xs font-medium hover:bg-white/30 transition">Configure EmailJS</button>
             </div>
         </div>
     </aside>
@@ -188,9 +239,7 @@
                                         <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody id="recentInvoicesTable" class="divide-y divide-slate-100">
-                                    <!-- Dynamic content -->
-                                </tbody>
+                                <tbody id="recentInvoicesTable" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -222,14 +271,14 @@
                                 </div>
                             </button>
 
-                            <button onclick="showSMTConfig()" class="w-full p-4 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all text-left group">
+                            <button onclick="testEmailConfiguration()" class="w-full p-4 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all text-left group">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-all">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                                     </div>
                                     <div>
-                                        <p class="font-semibold text-slate-800">Email Settings</p>
-                                        <p class="text-xs text-slate-500">Configure SMTP</p>
+                                        <p class="font-semibold text-slate-800">Test Email</p>
+                                        <p class="text-xs text-slate-500">Send test message</p>
                                     </div>
                                 </div>
                             </button>
@@ -295,9 +344,7 @@
                                     <input type="text" id="clientSearch" placeholder="Search clients..." onkeyup="filterClients()" class="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-48">
                                 </div>
                             </div>
-                            <div class="divide-y divide-slate-100" id="clientList">
-                                <!-- Dynamic client cards -->
-                            </div>
+                            <div class="divide-y divide-slate-100" id="clientList"></div>
                         </div>
                     </div>
 
@@ -307,11 +354,11 @@
                             <h3 class="font-bold text-slate-800 mb-6">Add New Client</h3>
                             <form id="clientForm" class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name *</label>
                                     <input type="text" id="newClientName" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address *</label>
                                     <input type="email" id="newClientEmail" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
@@ -319,12 +366,12 @@
                                     <input type="tel" id="newClientPhone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Company (Optional)</label>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Company</label>
                                     <input type="text" id="newClientCompany" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
-                                    <textarea id="newClientAddress" rows="3" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"></textarea>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Address *</label>
+                                    <textarea id="newClientAddress" required rows="3" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none" placeholder="Street, City, Postal Code, Country"></textarea>
                                 </div>
                                 <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all">
                                     Save Client
@@ -337,29 +384,51 @@
 
             <!-- Create Invoice Section -->
             <section id="section-create" class="hidden animate-fade-in">
-                <div class="max-w-4xl mx-auto">
+                <div class="max-w-5xl mx-auto">
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm">
                         <div class="p-8 border-b border-slate-100">
                             <h3 class="text-xl font-bold text-slate-800">Create New Invoice</h3>
-                            <p class="text-sm text-slate-500 mt-1">Fill in the details below to generate an invoice</p>
+                            <p class="text-sm text-slate-500 mt-1">Fill in the details below to generate and email an invoice</p>
                         </div>
                         
-                        <form id="invoiceForm" class="p-8 space-y-6">
+                        <form id="invoiceForm" class="p-8 space-y-8">
+                            <!-- Your Company Details -->
+                            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                                <h4 class="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                    Your Business Details
+                                </h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
+                                        <input type="text" id="companyName" placeholder="Your Company Name" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Your Email</label>
+                                        <input type="email" id="companyEmail" placeholder="billing@yourcompany.com" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-slate-700 mb-1">Business Address</label>
+                                        <textarea id="companyAddress" rows="2" placeholder="Your business address..." class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Client Selection -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div class="md:col-span-2">
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Select Client</label>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Select Client *</label>
                                     <select id="clientSelect" onchange="fillClientDetails()" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white">
                                         <option value="">-- Select existing client or enter manually --</option>
                                     </select>
                                 </div>
                                 
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Client Name</label>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Client Name *</label>
                                     <input type="text" id="clientName" required class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Email Address *</label>
                                     <input type="email" id="clientEmail" required class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
@@ -367,8 +436,12 @@
                                     <input type="tel" id="clientPhone" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-2">Invoice Date</label>
-                                    <input type="date" id="invoiceDate" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Invoice Date *</label>
+                                    <input type="date" id="invoiceDate" required class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Client Address *</label>
+                                    <textarea id="clientAddress" required rows="2" placeholder="Client's billing address..." class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"></textarea>
                                 </div>
                             </div>
 
@@ -381,15 +454,13 @@
                                         Add Item
                                     </button>
                                 </div>
-                                <div id="itemsContainer" class="space-y-3">
-                                    <!-- Dynamic items -->
-                                </div>
+                                <div id="itemsContainer" class="space-y-3"></div>
                             </div>
 
                             <!-- Totals -->
                             <div class="border-t border-slate-100 pt-6">
                                 <div class="flex justify-end">
-                                    <div class="w-full max-w-sm space-y-3">
+                                    <div class="w-full max-w-sm space-y-3 bg-slate-50 p-6 rounded-xl border border-slate-200">
                                         <div class="flex justify-between text-sm">
                                             <span class="text-slate-600">Subtotal</span>
                                             <span id="previewSubtotal" class="font-medium">R 0.00</span>
@@ -403,6 +474,19 @@
                                             <span id="previewTotal" class="text-cyan-600">R 0.00</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Email Preview -->
+                            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                                <h4 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                    Email Preview
+                                </h4>
+                                <p class="text-sm text-blue-800 mb-4">This invoice will be emailed to <strong id="previewEmail">client@example.com</strong> with a professional PDF attachment.</p>
+                                <div class="flex items-center gap-2 text-sm text-blue-700">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Make sure EmailJS is configured in the sidebar to send real emails
                                 </div>
                             </div>
 
@@ -425,7 +509,7 @@
 
     <!-- Invoice Preview Modal -->
     <div id="invoiceModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-        <div class="bg-white max-w-3xl w-full rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="bg-white max-w-4xl w-full rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
             <div class="bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-6 text-white flex justify-between items-center">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tighter">AURABILL</h1>
@@ -440,39 +524,14 @@
                 <button onclick="closeModal()" class="flex-1 py-3 text-slate-600 border border-slate-300 rounded-xl hover:bg-slate-100 transition font-medium">
                     Close
                 </button>
+                <button onclick="resendInvoiceEmail()" id="resendBtn" class="flex-1 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                    Resend Email
+                </button>
                 <button onclick="downloadCurrentInvoice()" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Download PDF
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- SMTP Configuration Modal -->
-    <div id="smtpModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-        <div class="bg-white max-w-md w-full rounded-2xl shadow-2xl p-6">
-            <h3 class="text-xl font-bold text-slate-800 mb-4">Email Configuration</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">SMTP Host</label>
-                    <input type="text" id="smtpHost" placeholder="smtp.gmail.com" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Port</label>
-                    <input type="number" id="smtpPort" placeholder="587" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
-                    <input type="email" id="smtpUser" placeholder="your@email.com" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Password / App Key</label>
-                    <input type="password" id="smtpPass" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6">
-                <button onclick="closeSMTPModal()" class="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition">Cancel</button>
-                <button onclick="saveSMTPConfig()" class="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition">Save Settings</button>
             </div>
         </div>
     </div>
@@ -507,15 +566,104 @@
         let allClients = [];
         let currentInvoice = null;
         let editKey = null;
+        let emailjsConfig = {
+            publicKey: '',
+            serviceId: '',
+            templateId: ''
+        };
         const VAT_RATE = 0.15;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('invoiceDate').valueAsDate = new Date();
+            loadEmailJSConfig();
             loadClients();
             loadInvoices();
             addItemRow();
+            
+            // Update email preview on input
+            document.getElementById('clientEmail').addEventListener('input', (e) => {
+                document.getElementById('previewEmail').textContent = e.target.value || 'client@example.com';
+            });
         });
+
+        // EmailJS Configuration
+        function loadEmailJSConfig() {
+            const saved = localStorage.getItem('emailjs_config');
+            if (saved) {
+                emailjsConfig = JSON.parse(saved);
+                emailjs.init(emailjsConfig.publicKey);
+                updateEmailStatus(true);
+                document.getElementById('emailjsSetupModal').classList.add('hidden');
+            }
+        }
+
+        function saveEmailJSConfig() {
+            emailjsConfig = {
+                publicKey: document.getElementById('emailjsPublicKey').value.trim(),
+                serviceId: document.getElementById('emailjsServiceId').value.trim(),
+                templateId: document.getElementById('emailjsTemplateId').value.trim()
+            };
+            
+            if (!emailjsConfig.publicKey || !emailjsConfig.serviceId || !emailjsConfig.templateId) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            localStorage.setItem('emailjs_config', JSON.stringify(emailjsConfig));
+            emailjs.init(emailjsConfig.publicKey);
+            updateEmailStatus(true);
+            document.getElementById('emailjsSetupModal').classList.add('hidden');
+            showMessage('EmailJS configured successfully!');
+        }
+
+        function skipEmailSetup() {
+            document.getElementById('emailjsSetupModal').classList.add('hidden');
+            updateEmailStatus(false);
+        }
+
+        function showEmailJSModal() {
+            document.getElementById('emailjsSetupModal').classList.remove('hidden');
+            if (emailjsConfig.publicKey) {
+                document.getElementById('emailjsPublicKey').value = emailjsConfig.publicKey;
+                document.getElementById('emailjsServiceId').value = emailjsConfig.serviceId;
+                document.getElementById('emailjsTemplateId').value = emailjsConfig.templateId;
+            }
+        }
+
+        function updateEmailStatus(connected) {
+            const statusEl = document.getElementById('emailStatusText');
+            if (connected) {
+                statusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Connected';
+                statusEl.className = 'text-sm font-semibold mt-1 flex items-center gap-2 text-emerald-600';
+            } else {
+                statusEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400"></span> Not Configured';
+                statusEl.className = 'text-sm font-semibold mt-1 flex items-center gap-2 text-red-600';
+            }
+        }
+
+        async function testEmailConfiguration() {
+            if (!emailjsConfig.publicKey) {
+                showMessage('Please configure EmailJS first');
+                showEmailJSModal();
+                return;
+            }
+            
+            try {
+                await emailjs.send(emailjsConfig.serviceId, emailjsConfig.templateId, {
+                    to_email: document.getElementById('companyEmail').value || 'test@example.com',
+                    client_name: 'Test User',
+                    invoice_id: 'TEST-001',
+                    amount: '0.00',
+                    due_date: new Date().toLocaleDateString(),
+                    company_name: document.getElementById('companyName').value || 'Your Company',
+                    message: 'This is a test email from AuraBill'
+                });
+                showMessage('Test email sent successfully!');
+            } catch (err) {
+                showMessage('Failed to send test email: ' + err.text);
+            }
+        }
 
         // Navigation
         function showSection(section) {
@@ -573,6 +721,7 @@
                             <h4 class="font-semibold text-slate-800">${client.name}</h4>
                             <p class="text-sm text-slate-500">${client.email}</p>
                             ${client.company ? `<p class="text-xs text-slate-400">${client.company}</p>` : ''}
+                            ${client.address ? `<p class="text-xs text-slate-400 truncate max-w-xs">${client.address}</p>` : ''}
                         </div>
                     </div>
                     <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
@@ -595,7 +744,8 @@
             Array.from(items).forEach((item, index) => {
                 const client = allClients[index];
                 const match = client.name.toLowerCase().includes(search) || 
-                             client.email.toLowerCase().includes(search);
+                             client.email.toLowerCase().includes(search) ||
+                             (client.address && client.address.toLowerCase().includes(search));
                 item.style.display = match ? 'flex' : 'none';
             });
         }
@@ -625,6 +775,8 @@
                 document.getElementById('clientName').value = client.name;
                 document.getElementById('clientEmail').value = client.email;
                 document.getElementById('clientPhone').value = client.phone || '';
+                document.getElementById('clientAddress').value = client.address || '';
+                document.getElementById('previewEmail').textContent = client.email;
             }
         }
 
@@ -794,45 +946,80 @@
 
         document.getElementById('searchInput').addEventListener('input', renderTable);
 
-        // PDF Generation
+        // PDF Generation with Address
         async function generatePDF(data, download = true) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Header
+            // Header with Company Info
             doc.setFillColor(8, 145, 178);
-            doc.rect(0, 0, 210, 45, 'F');
+            doc.rect(0, 0, 210, 50, 'F');
             
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(28);
-            doc.text("AURABILL", 14, 28);
+            doc.setFontSize(24);
+            doc.text(data.companyName || "AURABILL", 14, 28);
             
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setFont("helvetica", "normal");
-            doc.text("PROFESSIONAL INVOICING SOLUTION", 14, 36);
+            if (data.companyAddress) {
+                const addressLines = data.companyAddress.split(',').map(s => s.trim());
+                let yPos = 36;
+                addressLines.forEach(line => {
+                    doc.text(line, 14, yPos);
+                    yPos += 5;
+                });
+            }
             
-            // Meta
-            doc.setTextColor(60, 60, 60);
-            doc.text(`Invoice #: ${data.id}`, 150, 20, { align: "right" });
-            doc.text(`Date: ${new Date(data.timestamp).toLocaleDateString('en-ZA')}`, 150, 27, { align: "right" });
-            doc.text(`Status: ${data.status}`, 150, 34, { align: "right" });
+            // Invoice Meta (Right side)
+            doc.setFontSize(10);
+            doc.text(`Invoice #: ${data.id}`, 195, 20, { align: "right" });
+            doc.text(`Date: ${new Date(data.timestamp).toLocaleDateString('en-ZA')}`, 195, 27, { align: "right" });
+            doc.text(`Status: ${data.status}`, 195, 34, { align: "right" });
+            doc.text(`Due Date: ${new Date(data.timestamp + 30*24*60*60*1000).toLocaleDateString('en-ZA')}`, 195, 41, { align: "right" });
             
-            // Client Box
+            // Bill To Section with Address
             doc.setFillColor(248, 250, 252);
-            doc.roundedRect(14, 55, 90, 40, 3, 3, 'F');
+            doc.rect(14, 60, 85, 45, 'F');
             doc.setFont("helvetica", "bold");
             doc.setTextColor(8, 145, 178);
-            doc.text("BILL TO:", 18, 64);
+            doc.text("BILL TO:", 18, 68);
+            
             doc.setTextColor(30, 41, 59);
-            doc.setFontSize(12);
-            doc.text(data.clientName, 18, 73);
+            doc.setFontSize(11);
+            doc.text(data.clientName, 18, 77);
             doc.setFont("helvetica", "normal");
             doc.setFontSize(9);
-            doc.text(data.clientEmail, 18, 80);
-            if (data.clientPhone) doc.text(data.clientPhone, 18, 86);
             
-            // Table
+            let clientY = 84;
+            if (data.clientAddress) {
+                const addrLines = doc.splitTextToSize(data.clientAddress, 75);
+                addrLines.forEach(line => {
+                    doc.text(line, 18, clientY);
+                    clientY += 5;
+                });
+            }
+            if (data.clientPhone) {
+                doc.text(`Tel: ${data.clientPhone}`, 18, clientY);
+            }
+            
+            // Ship To (if different - optional)
+            if (data.shippingAddress) {
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(8, 145, 178);
+                doc.text("SHIP TO:", 108, 68);
+                doc.setTextColor(30, 41, 59);
+                doc.setFont("helvetica", "normal");
+                let shipY = 77;
+                const shipLines = doc.splitTextToSize(data.shippingAddress, 75);
+                shipLines.forEach(line => {
+                    doc.text(line, 108, shipY);
+                    shipY += 5;
+                });
+            }
+            
+            // Items Table
+            const startY = data.shippingAddress ? 115 : 110;
             const body = data.services.map((s, i) => [
                 i + 1,
                 s.desc,
@@ -842,8 +1029,8 @@
             ]);
             
             doc.autoTable({
-                startY: 105,
-                head: [['#', 'Description', 'Qty', 'Unit Price', 'Total']],
+                startY: startY,
+                head: [['#', 'Description', 'Qty', 'Unit Price', 'Amount']],
                 body: body,
                 theme: 'grid',
                 headStyles: {
@@ -857,46 +1044,66 @@
                     3: { halign: 'right' },
                     4: { halign: 'right', fontStyle: 'bold' }
                 },
-                styles: { fontSize: 10 }
+                styles: { fontSize: 10, cellPadding: 5 }
             });
             
             // Totals
-            const y = doc.lastAutoTable.finalY + 15;
+            const finalY = doc.lastAutoTable.finalY + 15;
             doc.setFontSize(10);
-            doc.text("Subtotal:", 130, y);
-            doc.text(`R ${parseFloat(data.subtotal).toFixed(2)}`, 195, y, { align: "right" });
+            doc.setTextColor(80, 80, 80);
             
-            doc.text("VAT (15%):", 130, y + 8);
-            doc.text(`R ${parseFloat(data.vat).toFixed(2)}`, 195, y + 8, { align: "right" });
+            const totalsX = 130;
+            doc.text("Subtotal:", totalsX, finalY);
+            doc.text(`R ${parseFloat(data.subtotal).toFixed(2)}`, 195, finalY, { align: "right" });
+            
+            doc.text(`VAT (15%):`, totalsX, finalY + 8);
+            doc.text(`R ${parseFloat(data.vat).toFixed(2)}`, 195, finalY + 8, { align: "right" });
+            
+            if (data.discount > 0) {
+                doc.text(`Discount:`, totalsX, finalY + 16);
+                doc.text(`- R ${parseFloat(data.discount).toFixed(2)}`, 195, finalY + 16, { align: "right" });
+            }
             
             doc.setDrawColor(200, 200, 200);
-            doc.line(130, y + 14, 195, y + 14);
+            doc.line(totalsX, finalY + 22, 195, finalY + 22);
             
             doc.setFont("helvetica", "bold");
             doc.setFontSize(14);
             doc.setTextColor(8, 145, 178);
-            doc.text("TOTAL:", 130, y + 26);
-            doc.text(`R ${parseFloat(data.total).toFixed(2)}`, 195, y + 26, { align: "right" });
+            doc.text("TOTAL DUE:", totalsX, finalY + 34);
+            doc.text(`R ${parseFloat(data.total).toFixed(2)}`, 195, finalY + 34, { align: "right" });
             
-            // Footer
+            // Payment Info
             doc.setFont("helvetica", "normal");
             doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Payment Terms: Net 30 days", 14, 270);
+            doc.text("Bank Transfer: Standard Bank | Acc: 123456789 | Branch: 051001", 14, 275);
+            
+            // Footer
             doc.setTextColor(150, 150, 150);
-            doc.text("Thank you for your business • Payment due within 30 days", 105, 285, { align: "center" });
+            doc.text("Thank you for your business!", 105, 285, { align: "center" });
             
             if (download) {
                 doc.save(`Invoice_${data.id}.pdf`);
             }
             
-            return doc.output('datauristring');
+            return doc.output('datauristring').split(',')[1];
         }
 
-        // Form Handling
+        // Form Handling with EmailJS
         document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (!emailjsConfig.publicKey) {
+                showMessage('Please configure EmailJS first to send emails');
+                showEmailJSModal();
+                return;
+            }
+            
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+            btn.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating & Sending...';
             
             const services = [];
             let subtotal = 0;
@@ -920,54 +1127,137 @@
             }
             
             const vat = subtotal * VAT_RATE;
+            const total = subtotal + vat;
+            const timestamp = Date.now();
+            const dueDate = new Date(timestamp + 30*24*60*60*1000).toLocaleDateString('en-ZA');
+            
             const data = {
+                companyName: document.getElementById('companyName').value || 'AuraBill IT Solutions',
+                companyEmail: document.getElementById('companyEmail').value || '',
+                companyAddress: document.getElementById('companyAddress').value || '',
                 clientName: document.getElementById('clientName').value,
                 clientEmail: document.getElementById('clientEmail').value,
-                clientPhone: document.getElementById('clientPhone').value,
-                services,
-                subtotal,
-                vat,
-                total: subtotal + vat,
-                timestamp: Date.now(),
-                status: 'Sent'
+                clientPhone: document.getElementById('clientPhone').value || '',
+                clientAddress: document.getElementById('clientAddress').value,
+                services, subtotal, vat, total,
+                timestamp: timestamp,
+                status: 'Sent',
+                dueDate: dueDate
             };
             
             try {
+                // Generate PDF base64
+                const pdfBase64 = await generatePDF(data, false);
+                
+                // Save to Firebase first
+                let invoiceRef;
                 if (editKey) {
                     data.id = allInvoices.find(i => i.key === editKey).id;
                     await db.ref('invoices/' + editKey).update(data);
+                    invoiceRef = editKey;
                 } else {
                     const newRef = db.ref('invoices').push();
                     data.id = 'INV-' + newRef.key.slice(-6).toUpperCase();
                     await newRef.set(data);
+                    invoiceRef = newRef.key;
                 }
                 
-                // Generate and send email
-                const pdfBase64 = await generatePDF(data, false);
+                // Prepare EmailJS template parameters
+                const templateParams = {
+                    to_email: data.clientEmail,
+                    client_name: data.clientName,
+                    invoice_id: data.id,
+                    amount: `R ${total.toFixed(2)}`,
+                    due_date: dueDate,
+                    company_name: data.companyName,
+                    client_address: data.clientAddress,
+                    company_address: data.companyAddress,
+                    invoice_date: new Date(timestamp).toLocaleDateString('en-ZA'),
+                    subtotal: `R ${subtotal.toFixed(2)}`,
+                    vat: `R ${vat.toFixed(2)}`,
+                    pdf_attachment: pdfBase64,
+                    items_list: services.map(s => `${s.desc} (x${s.qty}) - R ${(s.qty * s.price).toFixed(2)}`).join('\n')
+                };
                 
-                // EmailJS integration
-                try {
-                    await emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
-                        to_email: data.clientEmail,
-                        client_name: data.clientName,
-                        invoice_id: data.id,
-                        amount: data.total.toFixed(2),
-                        pdf_attachment: pdfBase64
-                    });
-                    showMessage('Invoice created and emailed successfully!');
-                } catch (emailErr) {
-                    showMessage('Invoice saved but email failed. Check SMTP settings.');
-                }
+                // Send via EmailJS
+                const emailResult = await emailjs.send(
+                    emailjsConfig.serviceId,
+                    emailjsConfig.templateId,
+                    templateParams
+                );
+                
+                console.log('Email sent successfully:', emailResult);
+                showMessage(`Invoice ${data.id} created and emailed to ${data.clientEmail}!`);
+                
+                // Update invoice with email sent status
+                await db.ref('invoices/' + invoiceRef).update({
+                    emailSent: true,
+                    emailSentAt: Date.now()
+                });
                 
                 resetForm();
                 showSection('invoices');
+                
             } catch (err) {
-                showMessage('Error: ' + err.message);
+                console.error('Error:', err);
+                if (err.text) {
+                    showMessage('Email failed: ' + err.text);
+                } else {
+                    showMessage('Invoice saved but email failed. Check console.');
+                }
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Generate & Send Invoice';
             }
         });
+
+        async function resendInvoiceEmail() {
+            if (!currentInvoice) return;
+            if (!emailjsConfig.publicKey) {
+                showMessage('Configure EmailJS first');
+                return;
+            }
+            
+            const btn = document.getElementById('resendBtn');
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            
+            try {
+                const pdfBase64 = await generatePDF(currentInvoice, false);
+                const dueDate = new Date(currentInvoice.timestamp + 30*24*60*60*1000).toLocaleDateString('en-ZA');
+                
+                await emailjs.send(
+                    emailjsConfig.serviceId,
+                    emailjsConfig.templateId,
+                    {
+                        to_email: currentInvoice.clientEmail,
+                        client_name: currentInvoice.clientName,
+                        invoice_id: currentInvoice.id,
+                        amount: `R ${parseFloat(currentInvoice.total).toFixed(2)}`,
+                        due_date: dueDate,
+                        company_name: currentInvoice.companyName || 'AuraBill',
+                        client_address: currentInvoice.clientAddress,
+                        company_address: currentInvoice.companyAddress,
+                        invoice_date: new Date(currentInvoice.timestamp).toLocaleDateString('en-ZA'),
+                        subtotal: `R ${parseFloat(currentInvoice.subtotal).toFixed(2)}`,
+                        vat: `R ${parseFloat(currentInvoice.vat).toFixed(2)}`,
+                        pdf_attachment: pdfBase64,
+                        items_list: currentInvoice.services.map(s => `${s.desc} (x${s.qty}) - R ${(s.qty * s.price).toFixed(2)}`).join('\n'),
+                        is_resend: 'true'
+                    }
+                );
+                
+                showMessage('Invoice resent successfully!');
+                await db.ref('invoices/' + currentInvoice.key).update({
+                    emailResentAt: Date.now()
+                });
+            } catch (err) {
+                showMessage('Failed to resend: ' + (err.text || err.message));
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> Resend Email';
+            }
+        }
 
         function saveAsDraft() {
             const services = [];
@@ -980,9 +1270,13 @@
             
             const subtotal = services.reduce((sum, s) => sum + (s.qty * s.price), 0);
             const data = {
+                companyName: document.getElementById('companyName').value || 'AuraBill',
+                companyEmail: document.getElementById('companyEmail').value || '',
+                companyAddress: document.getElementById('companyAddress').value || '',
                 clientName: document.getElementById('clientName').value || 'Draft Client',
                 clientEmail: document.getElementById('clientEmail').value || '',
                 clientPhone: document.getElementById('clientPhone').value || '',
+                clientAddress: document.getElementById('clientAddress').value || '',
                 services,
                 subtotal,
                 vat: subtotal * VAT_RATE,
@@ -1004,9 +1298,11 @@
             document.getElementById('invoiceForm').reset();
             document.getElementById('itemsContainer').innerHTML = '';
             document.getElementById('clientSelect').value = '';
+            document.getElementById('previewEmail').textContent = 'client@example.com';
             addItemRow();
             updateTotals();
             editKey = null;
+            document.getElementById('invoiceDate').valueAsDate = new Date();
         }
 
         // Actions
@@ -1015,8 +1311,9 @@
             if (!currentInvoice) return;
             
             const date = new Date(currentInvoice.timestamp).toLocaleDateString('en-ZA');
-            let servicesHtml = '';
+            const dueDate = new Date(currentInvoice.timestamp + 30*24*60*60*1000).toLocaleDateString('en-ZA');
             
+            let servicesHtml = '';
             currentInvoice.services.forEach(s => {
                 const total = (s.qty || 1) * parseFloat(s.price);
                 servicesHtml += `
@@ -1035,25 +1332,27 @@
                         <div>
                             <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Invoice Number</p>
                             <h2 class="text-3xl font-bold text-slate-800">#${currentInvoice.id}</h2>
+                            ${currentInvoice.emailSent ? '<span class="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full mt-2"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Emailed to client</span>' : ''}
                         </div>
                         <div class="text-right">
-                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Date</p>
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Issue Date</p>
                             <p class="font-medium text-slate-800">${date}</p>
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mt-3 mb-1">Due Date</p>
+                            <p class="font-medium text-amber-600">${dueDate}</p>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-8 bg-slate-50 p-6 rounded-xl">
-                        <div>
-                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Bill To</p>
-                            <p class="font-bold text-lg text-slate-800">${currentInvoice.clientName}</p>
-                            <p class="text-slate-600">${currentInvoice.clientEmail}</p>
-                            ${currentInvoice.clientPhone ? `<p class="text-slate-600">${currentInvoice.clientPhone}</p>` : ''}
+                    <div class="grid grid-cols-2 gap-8">
+                        <div class="bg-slate-50 p-4 rounded-xl">
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">From</p>
+                            <p class="font-bold text-slate-800">${currentInvoice.companyName || 'AuraBill'}</p>
+                            ${currentInvoice.companyAddress ? `<p class="text-sm text-slate-600 mt-1">${currentInvoice.companyAddress}</p>` : ''}
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Status</p>
-                            <span class="inline-flex px-4 py-2 rounded-full text-sm font-semibold ${currentInvoice.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : currentInvoice.status === 'Draft' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-700'}">
-                                ${currentInvoice.status}
-                            </span>
+                        <div class="bg-slate-50 p-4 rounded-xl">
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Bill To</p>
+                            <p class="font-bold text-slate-800">${currentInvoice.clientName}</p>
+                            ${currentInvoice.clientAddress ? `<p class="text-sm text-slate-600 mt-1">${currentInvoice.clientAddress}</p>` : ''}
+                            <p class="text-sm text-slate-500 mt-1">${currentInvoice.clientEmail}</p>
                         </div>
                     </div>
                     
@@ -1070,7 +1369,7 @@
                     </table>
                     
                     <div class="flex justify-end pt-4">
-                        <div class="w-72 space-y-3">
+                        <div class="w-72 space-y-3 bg-slate-50 p-6 rounded-xl">
                             <div class="flex justify-between text-sm text-slate-600">
                                 <span>Subtotal</span>
                                 <span>R ${parseFloat(currentInvoice.subtotal).toFixed(2)}</span>
@@ -1106,9 +1405,14 @@
             editKey = key;
             showSection('create');
             
+            document.getElementById('companyName').value = inv.companyName || '';
+            document.getElementById('companyEmail').value = inv.companyEmail || '';
+            document.getElementById('companyAddress').value = inv.companyAddress || '';
             document.getElementById('clientName').value = inv.clientName;
             document.getElementById('clientEmail').value = inv.clientEmail;
             document.getElementById('clientPhone').value = inv.clientPhone || '';
+            document.getElementById('clientAddress').value = inv.clientAddress || '';
+            document.getElementById('previewEmail').textContent = inv.clientEmail;
             
             document.getElementById('itemsContainer').innerHTML = '';
             inv.services.forEach(s => addItemRow(s.desc, s.qty || 1, s.price));
@@ -1116,7 +1420,7 @@
         }
 
         function markPaid(key) {
-            db.ref('invoices/' + key).update({ status: 'Paid' });
+            db.ref('invoices/' + key).update({ status: 'Paid', paidAt: Date.now() });
             showMessage('Invoice marked as paid');
         }
 
@@ -1127,9 +1431,9 @@
         }
 
         function exportInvoices() {
-            let csv = 'ID,Client,Email,Date,Amount,Status\n';
+            let csv = 'ID,Client,Email,Address,Date,Amount,Status\n';
             allInvoices.forEach(inv => {
-                csv += `${inv.id},${inv.clientName},${inv.clientEmail},${new Date(inv.timestamp).toLocaleDateString()},${inv.total},${inv.status}\n`;
+                csv += `${inv.id},"${inv.clientName}","${inv.clientEmail}","${inv.clientAddress || ''}",${new Date(inv.timestamp).toLocaleDateString()},${inv.total},${inv.status}\n`;
             });
             
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -1140,26 +1444,10 @@
             a.click();
         }
 
-        // SMTP Config
-        function showSMTConfig() {
-            document.getElementById('smtpModal').classList.remove('hidden');
-        }
-
-        function closeSMTPModal() {
-            document.getElementById('smtpModal').classList.add('hidden');
-        }
-
-        function saveSMTPConfig() {
-            // In real app, save to backend or localStorage
-            showMessage('SMTP settings saved (demo mode)');
-            closeSMTPModal();
-        }
-
-        // Utilities
         function showMessage(text) {
             document.getElementById('messageText').textContent = text;
             document.getElementById('messageModal').classList.remove('hidden');
-            setTimeout(closeMessage, 3000);
+            setTimeout(closeMessage, 4000);
         }
 
         function closeMessage() {
