@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuraBill | Admin Dashboard</title>
+    <title>AuraBill | Advanced Invoicing Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -17,168 +17,479 @@
         tailwind.config = { darkMode: 'class' }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s ease; }
-        /* Custom scrollbar for sidebar */
-        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
-        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .sidebar-link {
+            transition: all 0.2s ease;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(8, 145, 178, 0.1);
+            color: #0891b2;
+            border-right: 3px solid #0891b2;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #0891b2 0%, #2563eb 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
-<body class="dark bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 text-slate-900 dark:text-gray-200 min-h-screen">
+<body class="bg-slate-50 text-slate-800 antialiased">
+    <!-- Sidebar -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 z-50 flex flex-col">
+        <div class="p-6 border-b border-slate-100">
+            <h1 class="text-2xl font-bold gradient-text tracking-tight">AuraBill</h1>
+            <p class="text-xs text-slate-400 mt-1">Advanced Invoicing System</p>
+        </div>
+        
+        <nav class="flex-1 py-6 px-3 space-y-1">
+            <a href="#" onclick="showSection('dashboard')" id="nav-dashboard" class="sidebar-link active flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Dashboard
+            </a>
+            <a href="#" onclick="showSection('invoices')" id="nav-invoices" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Invoices
+            </a>
+            <a href="#" onclick="showSection('clients')" id="nav-clients" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                Clients
+            </a>
+            <a href="#" onclick="showSection('create')" id="nav-create" class="sidebar-link flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Create Invoice
+            </a>
+        </nav>
 
-    <!-- Sidebar Toggle Button (Mobile) -->
-    <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 p-2 bg-slate-800 text-white rounded-lg md:hidden">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-    </button>
+        <div class="p-4 border-t border-slate-100">
+            <div class="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl p-4 text-white">
+                <p class="text-xs font-medium opacity-90">Pro Plan</p>
+                <p class="text-sm font-semibold mt-1">Unlimited Invoices</p>
+                <button class="mt-3 w-full py-2 bg-white/20 rounded-lg text-xs font-medium hover:bg-white/30 transition">Upgrade</button>
+            </div>
+        </div>
+    </aside>
 
-    <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-80 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col h-full">
-            <div class="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-                <h2 class="text-lg font-semibold text-slate-800 dark:text-white">Create New Invoice</h2>
-                <button onclick="toggleSidebar()" class="md:hidden text-slate-500">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <!-- Main Content -->
+    <main class="ml-64 min-h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-8 py-4 flex justify-between items-center">
+            <div>
+                <h2 id="page-title" class="text-2xl font-bold text-slate-800">Dashboard</h2>
+                <p id="page-subtitle" class="text-sm text-slate-500 mt-0.5">Overview of your business</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="showSection('create')" class="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-cyan-500/25 transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    New Invoice
                 </button>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto sidebar-scroll p-6">
-                <form id="invoiceForm" class="space-y-3">
-                    <div class="relative">
-                        <input type="text" id="clientName" placeholder="Client Name" required 
-                            class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500"
-                            oninput="filterClients()" onblur="hideClientSuggestions()" onfocus="filterClients()">
-                        <div id="clientSuggestions" class="absolute z-50 w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg mt-1 max-h-40 overflow-y-auto hidden shadow-lg"></div>
-                    </div>
-                    <input type="email" id="clientEmail" placeholder="Client Email" required class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500">
-                    <input type="tel" id="clientPhone" placeholder="Phone Number" required class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white outline-none focus:border-cyan-500">
-
-                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-4 mb-2">Services</div>
-                    <div id="itemsContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
-
-                    <button type="button" id="addItem" class="w-full bg-blue-500 hover:bg-blue-400 text-white text-sm font-bold py-2 rounded-lg transition-all shadow-lg shadow-blue-500/20">
-                        + Add Service
-                    </button>
-                    <button type="submit" id="submitBtn" class="w-full bg-cyan-500 hover:bg-cyan-400 text-slate-900 text-sm font-bold py-2.5 rounded-lg transition-all shadow-lg shadow-cyan-500/20 mt-4">
-                        Generate, Save & Email PDF
-                    </button>
-                </form>
-            </div>
-        </aside>
-
-        <!-- Overlay for mobile -->
-        <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
-
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto p-4 md:p-8 w-full">
-            <div class="max-w-7xl mx-auto mb-8 flex justify-between items-center">
-                <div>
-                    <h1 class="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-500 tracking-tight">
-                        AuraBill Dashboard
-                    </h1>
-                    <p class="text-slate-500 dark:text-slate-400 mt-2">IT Billing Management System</p>
-                </div>
-                <button onclick="toggleTheme()" class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:scale-110 transition-all">
-                    <span id="themeIcon">🌙</span>
-                </button>
-            </div>
-
-            <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-slate-50 dark:bg-slate-800/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Revenue</p>
-                    <h3 id="totalRevenue" class="text-2xl font-bold text-slate-900 dark:text-white mt-1">R 0.00</h3>
-                </div>
-                <div class="bg-slate-50 dark:bg-slate-800/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Pending Balance</p>
-                    <h3 id="pendingBalance" class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">R 0.00</h3>
-                </div>
-                <div class="bg-slate-50 dark:bg-slate-800/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-700/50 shadow-lg">
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Invoice Count</p>
-                    <h3 id="invoiceCount" class="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mt-1">0</h3>
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
+                    AB
                 </div>
             </div>
+        </header>
 
-            <div class="max-w-7xl mx-auto">
-                <div class="bg-slate-50 dark:bg-slate-800/80 backdrop-blur-xl p-8 rounded-2xl shadow-xl dark:shadow-2xl border border-slate-200 dark:border-slate-700/50">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-                        <h2 class="text-xl font-semibold text-slate-800 dark:text-white">Recent Invoices</h2>
-                        <input type="text" id="searchInput" placeholder="Search invoices..." class="w-full md:w-64 bg-white dark:bg-slate-900/50 border border-slate-300 dark:border-slate-600 rounded-lg py-2 px-4 text-sm text-slate-900 dark:text-white outline-none">
+        <div class="p-8">
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="animate-fade-in">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-cyan-50 rounded-xl">
+                                <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12.5%</span>
+                        </div>
+                        <p class="text-slate-500 text-sm font-medium">Total Revenue</p>
+                        <h3 id="totalRevenue" class="text-2xl font-bold text-slate-800 mt-1">R 0.00</h3>
                     </div>
 
-                    <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
-                        <table class="w-full text-left border-collapse">
-                            <thead class="bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 text-sm">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-amber-50 rounded-xl">
+                                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">Pending</span>
+                        </div>
+                        <p class="text-slate-500 text-sm font-medium">Outstanding</p>
+                        <h3 id="pendingBalance" class="text-2xl font-bold text-slate-800 mt-1">R 0.00</h3>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-blue-50 rounded-xl">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <span class="text-xs font-medium text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full">This Month</span>
+                        </div>
+                        <p class="text-slate-500 text-sm font-medium">Total Invoices</p>
+                        <h3 id="invoiceCount" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 card-hover">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-3 bg-purple-50 rounded-xl">
+                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            </div>
+                            <span class="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                        <p class="text-slate-500 text-sm font-medium">Total Clients</p>
+                        <h3 id="clientCount" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                            <h3 class="font-bold text-slate-800">Recent Invoices</h3>
+                            <button onclick="showSection('invoices')" class="text-cyan-600 text-sm font-medium hover:text-cyan-700">View All</button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-slate-50">
+                                    <tr>
+                                        <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice</th>
+                                        <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Client</th>
+                                        <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                                        <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentInvoicesTable" class="divide-y divide-slate-100">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6">
+                        <h3 class="font-bold text-slate-800 mb-6">Quick Actions</h3>
+                        <div class="space-y-3">
+                            <button onclick="showSection('create')" class="w-full p-4 rounded-xl border border-slate-200 hover:border-cyan-500 hover:bg-cyan-50 transition-all text-left group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-cyan-100 text-cyan-600 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-white transition-all">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-800">Create Invoice</p>
+                                        <p class="text-xs text-slate-500">Generate new bill</p>
+                                    </div>
+                                </div>
+                            </button>
+                            
+                            <button onclick="showSection('clients')" class="w-full p-4 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-800">Add Client</p>
+                                        <p class="text-xs text-slate-500">Save contact info</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            <button onclick="showSMTConfig()" class="w-full p-4 rounded-xl border border-slate-200 hover:border-purple-500 hover:bg-purple-50 transition-all text-left group">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-all">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-semibold text-slate-800">Email Settings</p>
+                                        <p class="text-xs text-slate-500">Configure SMTP</p>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Invoices Section -->
+            <section id="section-invoices" class="hidden animate-fade-in">
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <div class="relative">
+                                <svg class="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <input type="text" id="searchInput" placeholder="Search invoices..." class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-64">
+                            </div>
+                            <select id="statusFilter" onchange="filterInvoices()" class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <option value="all">All Status</option>
+                                <option value="Sent">Sent</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Draft">Draft</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="exportInvoices()" class="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition">Export</button>
+                            <button onclick="showSection('create')" class="px-4 py-2.5 bg-cyan-500 text-white rounded-xl text-sm font-medium hover:bg-cyan-600 transition">New Invoice</button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="p-4 font-semibold">ID</th>
-                                    <th class="p-4 font-semibold">Client</th>
-                                    <th class="p-4 font-semibold">Date</th>
-                                    <th class="p-4 font-semibold">Amount</th>
-                                    <th class="p-4 font-semibold">Status</th>
-                                    <th class="p-4 font-semibold text-center">Actions</th>
+                                    <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Invoice ID</th>
+                                    <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Client</th>
+                                    <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date</th>
+                                    <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Amount</th>
+                                    <th class="text-left py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th class="text-center py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="invoiceTableBody" class="divide-y divide-slate-200 dark:divide-slate-700/50"></tbody>
+                            <tbody id="invoiceTableBody" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
-                    <div id="emptyState" class="hidden text-center py-12 text-slate-500 italic">No invoices found.</div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <div id="invoiceModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
-        <div class="bg-white dark:bg-slate-900 max-w-2xl w-full mx-4 rounded-3xl overflow-hidden shadow-2xl">
-            <div class="bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-6 text-white">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tighter">AURABILL</h1>
-                        <p class="text-xs tracking-[3px] opacity-75 -mt-1">INVOICE</p>
+                    <div id="emptyState" class="hidden text-center py-12 text-slate-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <p>No invoices found</p>
                     </div>
-                    <button onclick="closeModal()" class="text-4xl leading-none text-white/80 hover:text-white">×</button>
                 </div>
+            </section>
+
+            <!-- Clients Section -->
+            <section id="section-clients" class="hidden animate-fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Client List -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                                <h3 class="font-bold text-slate-800">All Clients</h3>
+                                <div class="relative">
+                                    <svg class="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    <input type="text" id="clientSearch" placeholder="Search clients..." onkeyup="filterClients()" class="pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-48">
+                                </div>
+                            </div>
+                            <div class="divide-y divide-slate-100" id="clientList">
+                                <!-- Dynamic client cards -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Client Form -->
+                    <div class="lg:col-span-1">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 sticky top-24">
+                            <h3 class="font-bold text-slate-800 mb-6">Add New Client</h3>
+                            <form id="clientForm" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                    <input type="text" id="newClientName" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                                    <input type="email" id="newClientEmail" required class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                                    <input type="tel" id="newClientPhone" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Company (Optional)</label>
+                                    <input type="text" id="newClientCompany" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                                    <textarea id="newClientAddress" rows="3" class="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 resize-none"></textarea>
+                                </div>
+                                <button type="submit" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all">
+                                    Save Client
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Create Invoice Section -->
+            <section id="section-create" class="hidden animate-fade-in">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="p-8 border-b border-slate-100">
+                            <h3 class="text-xl font-bold text-slate-800">Create New Invoice</h3>
+                            <p class="text-sm text-slate-500 mt-1">Fill in the details below to generate an invoice</p>
+                        </div>
+                        
+                        <form id="invoiceForm" class="p-8 space-y-6">
+                            <!-- Client Selection -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Select Client</label>
+                                    <select id="clientSelect" onchange="fillClientDetails()" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white">
+                                        <option value="">-- Select existing client or enter manually --</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Client Name</label>
+                                    <input type="text" id="clientName" required class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Email Address</label>
+                                    <input type="email" id="clientEmail" required class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
+                                    <input type="tel" id="clientPhone" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Invoice Date</label>
+                                    <input type="date" id="invoiceDate" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                </div>
+                            </div>
+
+                            <!-- Services -->
+                            <div class="border-t border-slate-100 pt-6">
+                                <div class="flex justify-between items-center mb-4">
+                                    <label class="block text-sm font-medium text-slate-700">Services & Items</label>
+                                    <button type="button" onclick="addItemRow()" class="text-sm text-cyan-600 font-medium hover:text-cyan-700 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        Add Item
+                                    </button>
+                                </div>
+                                <div id="itemsContainer" class="space-y-3">
+                                    <!-- Dynamic items -->
+                                </div>
+                            </div>
+
+                            <!-- Totals -->
+                            <div class="border-t border-slate-100 pt-6">
+                                <div class="flex justify-end">
+                                    <div class="w-full max-w-sm space-y-3">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-slate-600">Subtotal</span>
+                                            <span id="previewSubtotal" class="font-medium">R 0.00</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-slate-600">VAT (15%)</span>
+                                            <span id="previewVAT" class="font-medium">R 0.00</span>
+                                        </div>
+                                        <div class="flex justify-between text-lg font-bold border-t border-slate-200 pt-3">
+                                            <span class="text-slate-800">Total</span>
+                                            <span id="previewTotal" class="text-cyan-600">R 0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex gap-4 pt-6">
+                                <button type="button" onclick="saveAsDraft()" class="flex-1 py-3.5 border-2 border-slate-200 text-slate-600 font-semibold rounded-xl hover:border-slate-300 transition">
+                                    Save as Draft
+                                </button>
+                                <button type="submit" id="submitBtn" class="flex-1 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all flex items-center justify-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                    Generate & Send Invoice
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Invoice Preview Modal -->
+    <div id="invoiceModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+        <div class="bg-white max-w-3xl w-full rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="bg-gradient-to-r from-cyan-600 to-blue-600 px-8 py-6 text-white flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tighter">AURABILL</h1>
+                    <p class="text-xs tracking-[3px] opacity-75">INVOICE PREVIEW</p>
+                </div>
+                <button onclick="closeModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
             </div>
-            <div id="modalContent" class="p-8 text-slate-800 dark:text-slate-200 max-h-[70vh] overflow-y-auto"></div>
-            <div class="border-t border-slate-200 dark:border-slate-700 px-8 py-6 flex gap-3 bg-slate-50 dark:bg-slate-950">
-                <button onclick="closeModal()" class="flex-1 py-3.5 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <div id="modalContent" class="p-8 overflow-y-auto custom-scrollbar flex-1"></div>
+            <div class="border-t border-slate-200 px-8 py-6 flex gap-3 bg-slate-50">
+                <button onclick="closeModal()" class="flex-1 py-3 text-slate-600 border border-slate-300 rounded-xl hover:bg-slate-100 transition font-medium">
                     Close
                 </button>
-                <button onclick="downloadCurrentInvoice()" class="flex-1 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-2xl hover:brightness-110 transition">
+                <button onclick="downloadCurrentInvoice()" class="flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-xl hover:shadow-lg transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                     Download PDF
                 </button>
             </div>
         </div>
     </div>
 
-    <div id="confirmModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
-        <div class="bg-white dark:bg-slate-900 max-w-md w-full mx-4 rounded-3xl overflow-hidden shadow-2xl">
-            <div class="p-8">
-                <p id="confirmMessage" class="text-center text-lg text-slate-800 dark:text-slate-200"></p>
+    <!-- SMTP Configuration Modal -->
+    <div id="smtpModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+        <div class="bg-white max-w-md w-full rounded-2xl shadow-2xl p-6">
+            <h3 class="text-xl font-bold text-slate-800 mb-4">Email Configuration</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">SMTP Host</label>
+                    <input type="text" id="smtpHost" placeholder="smtp.gmail.com" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Port</label>
+                    <input type="number" id="smtpPort" placeholder="587" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                    <input type="email" id="smtpUser" placeholder="your@email.com" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Password / App Key</label>
+                    <input type="password" id="smtpPass" class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                </div>
             </div>
-            <div class="border-t border-slate-200 dark:border-slate-700 px-8 py-6 flex gap-3 bg-slate-50 dark:bg-slate-950">
-                <button onclick="confirmNo()" class="flex-1 py-3.5 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                    No
-                </button>
-                <button onclick="confirmYes()" class="flex-1 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-2xl hover:brightness-110 transition">
-                    Yes
-                </button>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeSMTPModal()" class="flex-1 py-2.5 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition">Cancel</button>
+                <button onclick="saveSMTPConfig()" class="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition">Save Settings</button>
             </div>
         </div>
     </div>
 
-    <div id="messageModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[9999]">
-        <div class="bg-white dark:bg-slate-900 max-w-md w-full mx-4 rounded-3xl overflow-hidden shadow-2xl">
-            <div class="p-8">
-                <p id="messageText" class="text-center text-lg text-slate-800 dark:text-slate-200"></p>
+    <!-- Message Modal -->
+    <div id="messageModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+        <div class="bg-white max-w-sm w-full rounded-2xl shadow-2xl p-6 text-center">
+            <div id="messageIcon" class="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             </div>
-            <div class="border-t border-slate-200 dark:border-slate-700 px-8 py-6 flex gap-3 bg-slate-50 dark:bg-slate-950">
-                <button onclick="closeMessage()" class="flex-1 py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold rounded-2xl hover:brightness-110 transition">
-                    OK
-                </button>
-            </div>
+            <p id="messageText" class="text-lg font-medium text-slate-800 mb-4"></p>
+            <button onclick="closeMessage()" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl font-medium hover:shadow-lg transition">OK</button>
         </div>
     </div>
 
     <script>
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyAxBT0oESoL62oz_x_Z8cMtdENWZPx4tMI",
             authDomain: "pinotp-d7ef5.firebaseapp.com",
@@ -193,230 +504,400 @@
         const db = firebase.database();
 
         let allInvoices = [];
-        let savedClients = [];
+        let allClients = [];
         let currentInvoice = null;
         let editKey = null;
         const VAT_RATE = 0.15;
-        let confirmCallback = null;
 
-        // Load saved clients from Firebase
-        db.ref('clients').on('value', (snapshot) => {
-            savedClients = [];
-            snapshot.forEach(child => {
-                savedClients.push({ ...child.val(), key: child.key });
-            });
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('invoiceDate').valueAsDate = new Date();
+            loadClients();
+            loadInvoices();
+            addItemRow();
         });
 
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
+        // Navigation
+        function showSection(section) {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(`nav-${section}`).classList.add('active');
+            
+            const titles = {
+                dashboard: ['Dashboard', 'Overview of your business'],
+                invoices: ['Invoices', 'Manage all your invoices'],
+                clients: ['Clients', 'Manage your client database'],
+                create: ['Create Invoice', 'Generate a new invoice']
+            };
+            document.getElementById('page-title').textContent = titles[section][0];
+            document.getElementById('page-subtitle').textContent = titles[section][1];
+        }
+
+        // Client Management
+        function loadClients() {
+            db.ref('clients').on('value', (snapshot) => {
+                allClients = [];
+                const select = document.getElementById('clientSelect');
+                select.innerHTML = '<option value="">-- Select existing client or enter manually --</option>';
+                
+                snapshot.forEach(child => {
+                    const client = { ...child.val(), key: child.key };
+                    allClients.push(client);
+                    
+                    const option = document.createElement('option');
+                    option.value = child.key;
+                    option.textContent = `${client.name} (${client.email})`;
+                    select.appendChild(option);
+                });
+                
+                document.getElementById('clientCount').textContent = allClients.length;
+                renderClientList();
+            });
+        }
+
+        function renderClientList() {
+            const container = document.getElementById('clientList');
+            container.innerHTML = '';
+            
+            allClients.forEach(client => {
+                const div = document.createElement('div');
+                div.className = 'p-6 hover:bg-slate-50 transition flex items-center justify-between group';
+                div.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg">
+                            ${client.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-slate-800">${client.name}</h4>
+                            <p class="text-sm text-slate-500">${client.email}</p>
+                            ${client.company ? `<p class="text-xs text-slate-400">${client.company}</p>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                        <button onclick="useClientForInvoice('${client.key}')" class="p-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition" title="Create Invoice">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </button>
+                        <button onclick="deleteClient('${client.key}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
         }
 
         function filterClients() {
-            const input = document.getElementById('clientName');
-            const suggestions = document.getElementById('clientSuggestions');
-            const value = input.value.toLowerCase();
+            const search = document.getElementById('clientSearch').value.toLowerCase();
+            const items = document.getElementById('clientList').children;
             
-            if (value.length < 1) {
-                suggestions.classList.add('hidden');
-                return;
-            }
-
-            const matches = savedClients.filter(client => 
-                client.name.toLowerCase().includes(value)
-            );
-
-            if (matches.length > 0) {
-                suggestions.innerHTML = matches.map(client => `
-                    <div onclick="selectClient('${client.key}')" class="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-sm text-slate-700 dark:text-slate-300">
-                        ${client.name} - ${client.email}
-                    </div>
-                `).join('');
-                suggestions.classList.remove('hidden');
-            } else {
-                suggestions.classList.add('hidden');
-            }
+            Array.from(items).forEach((item, index) => {
+                const client = allClients[index];
+                const match = client.name.toLowerCase().includes(search) || 
+                             client.email.toLowerCase().includes(search);
+                item.style.display = match ? 'flex' : 'none';
+            });
         }
 
-        function selectClient(key) {
-            const client = savedClients.find(c => c.key === key);
+        document.getElementById('clientForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const client = {
+                name: document.getElementById('newClientName').value,
+                email: document.getElementById('newClientEmail').value,
+                phone: document.getElementById('newClientPhone').value,
+                company: document.getElementById('newClientCompany').value,
+                address: document.getElementById('newClientAddress').value,
+                createdAt: Date.now()
+            };
+            
+            await db.ref('clients').push(client);
+            showMessage('Client added successfully!');
+            e.target.reset();
+        });
+
+        function fillClientDetails() {
+            const key = document.getElementById('clientSelect').value;
+            if (!key) return;
+            
+            const client = allClients.find(c => c.key === key);
             if (client) {
                 document.getElementById('clientName').value = client.name;
                 document.getElementById('clientEmail').value = client.email;
                 document.getElementById('clientPhone').value = client.phone || '';
-                document.getElementById('clientSuggestions').classList.add('hidden');
             }
         }
 
-        function hideClientSuggestions() {
-            setTimeout(() => {
-                document.getElementById('clientSuggestions').classList.add('hidden');
-            }, 200);
+        function useClientForInvoice(key) {
+            showSection('create');
+            document.getElementById('clientSelect').value = key;
+            fillClientDetails();
         }
 
-        function saveClient(name, email, phone) {
-            const existingClient = savedClients.find(c => 
-                c.name.toLowerCase() === name.toLowerCase() && c.email.toLowerCase() === email.toLowerCase()
-            );
-            
-            if (!existingClient) {
-                db.ref('clients').push({
-                    name: name,
-                    email: email,
-                    phone: phone,
-                    timestamp: Date.now()
-                });
+        function deleteClient(key) {
+            if (confirm('Delete this client?')) {
+                db.ref('clients/' + key).remove();
             }
         }
 
+        // Invoice Items
         function addItemRow(desc = '', qty = 1, price = '') {
             const container = document.getElementById('itemsContainer');
             const row = document.createElement('div');
-            row.className = 'bg-slate-100 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-200 dark:border-slate-700';
+            row.className = 'grid grid-cols-12 gap-3 items-start bg-slate-50 p-4 rounded-xl border border-slate-200';
             row.innerHTML = `
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-[10px] font-bold text-slate-500 uppercase">Service</span>
-                    <button type="button" class="remove-item text-[10px] px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded hover:bg-red-200 transition">Remove</button>
+                <div class="col-span-6">
+                    <input type="text" placeholder="Service description" value="${desc}" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 service-desc">
                 </div>
-                <input type="text" placeholder="Description" value="${desc}" class="w-full mb-1 bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-xs text-slate-900 dark:text-white outline-none service-desc">
-                <div class="flex space-x-2">
-                    <input type="number" placeholder="Qty" min="1" value="${qty}" class="w-16 bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-xs text-slate-900 dark:text-white outline-none service-qty">
-                    <input type="number" placeholder="Price" step="0.01" min="0" value="${price}" class="flex-1 bg-white dark:bg-slate-900/60 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-xs text-slate-900 dark:text-white outline-none service-price">
+                <div class="col-span-2">
+                    <input type="number" placeholder="Qty" min="1" value="${qty}" onchange="updateTotals()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 service-qty">
+                </div>
+                <div class="col-span-3">
+                    <input type="number" placeholder="Price" step="0.01" min="0" value="${price}" onchange="updateTotals()" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 service-price">
+                </div>
+                <div class="col-span-1">
+                    <button type="button" onclick="this.closest('.grid').remove(); updateTotals();" class="w-full h-full flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 </div>
             `;
             container.appendChild(row);
-            row.querySelector('.remove-item').addEventListener('click', () => row.remove());
+            updateTotals();
         }
 
-        addItemRow();
-        document.getElementById('addItem').addEventListener('click', () => addItemRow());
+        function updateTotals() {
+            let subtotal = 0;
+            document.querySelectorAll('#itemsContainer > div').forEach(row => {
+                const qty = parseInt(row.querySelector('.service-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.service-price').value) || 0;
+                subtotal += qty * price;
+            });
+            
+            const vat = subtotal * VAT_RATE;
+            const total = subtotal + vat;
+            
+            document.getElementById('previewSubtotal').textContent = `R ${subtotal.toFixed(2)}`;
+            document.getElementById('previewVAT').textContent = `R ${vat.toFixed(2)}`;
+            document.getElementById('previewTotal').textContent = `R ${total.toFixed(2)}`;
+        }
 
-        async function processInvoiceAndEmail(data) {
+        // Invoice Management
+        function loadInvoices() {
+            db.ref('invoices').on('value', (snapshot) => {
+                allInvoices = [];
+                let totalRev = 0, pending = 0;
+                
+                snapshot.forEach(child => {
+                    const inv = { ...child.val(), key: child.key };
+                    allInvoices.unshift(inv);
+                    totalRev += parseFloat(inv.total || 0);
+                    if (inv.status !== 'Paid') pending += parseFloat(inv.total || 0);
+                });
+                
+                document.getElementById('totalRevenue').textContent = `R ${totalRev.toFixed(2)}`;
+                document.getElementById('pendingBalance').textContent = `R ${pending.toFixed(2)}`;
+                document.getElementById('invoiceCount').textContent = allInvoices.length;
+                
+                renderTable();
+                renderRecentInvoices();
+            });
+        }
+
+        function renderRecentInvoices() {
+            const tbody = document.getElementById('recentInvoicesTable');
+            tbody.innerHTML = '';
+            
+            allInvoices.slice(0, 5).forEach(inv => {
+                const statusClass = inv.status === 'Paid' 
+                    ? 'bg-emerald-100 text-emerald-700' 
+                    : inv.status === 'Draft' 
+                        ? 'bg-slate-100 text-slate-600' 
+                        : 'bg-amber-100 text-amber-700';
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition cursor-pointer" onclick="viewInvoice('${inv.key}')">
+                        <td class="py-4 px-6">
+                            <span class="font-mono text-cyan-600 font-medium">#${inv.id}</span>
+                        </td>
+                        <td class="py-4 px-6">
+                            <div class="font-medium text-slate-800">${inv.clientName}</div>
+                        </td>
+                        <td class="py-4 px-6 font-medium">R ${parseFloat(inv.total).toFixed(2)}</td>
+                        <td class="py-4 px-6">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusClass}">${inv.status}</span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('invoiceTableBody');
+            const filter = document.getElementById('statusFilter').value;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            tbody.innerHTML = '';
+            let hasResults = false;
+            
+            allInvoices.forEach(inv => {
+                if (filter !== 'all' && inv.status !== filter) return;
+                if (search && !inv.clientName.toLowerCase().includes(search) && !inv.id.toLowerCase().includes(search)) return;
+                
+                hasResults = true;
+                const date = new Date(inv.timestamp).toLocaleDateString('en-ZA');
+                const statusClass = inv.status === 'Paid' 
+                    ? 'bg-emerald-100 text-emerald-700 border-emerald-200' 
+                    : inv.status === 'Draft' 
+                        ? 'bg-slate-100 text-slate-600 border-slate-200' 
+                        : 'bg-amber-100 text-amber-700 border-amber-200';
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-4 px-6 font-mono text-cyan-600 font-medium">#${inv.id}</td>
+                        <td class="py-4 px-6">
+                            <div class="font-medium text-slate-800">${inv.clientName}</div>
+                            <div class="text-sm text-slate-500">${inv.clientEmail}</div>
+                        </td>
+                        <td class="py-4 px-6 text-sm text-slate-600">${date}</td>
+                        <td class="py-4 px-6 font-bold text-slate-800">R ${parseFloat(inv.total).toFixed(2)}</td>
+                        <td class="py-4 px-6">
+                            <span class="px-3 py-1 rounded-full text-xs font-semibold border ${statusClass}">${inv.status}</span>
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <button onclick="viewInvoice('${inv.key}')" class="p-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition" title="View">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                                <button onclick="editInvoice('${inv.key}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </button>
+                                ${inv.status === 'Sent' ? `
+                                <button onclick="markPaid('${inv.key}')" class="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="Mark Paid">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </button>
+                                ` : ''}
+                                <button onclick="deleteInvoice('${inv.key}')" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('emptyState').classList.toggle('hidden', hasResults);
+        }
+
+        function filterInvoices() {
+            renderTable();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderTable);
+
+        // PDF Generation
+        async function generatePDF(data, download = true) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
+            
+            // Header
             doc.setFillColor(8, 145, 178);
-            doc.rect(0, 0, 210, 40, 'F');
+            doc.rect(0, 0, 210, 45, 'F');
             
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
-            doc.setFontSize(24);
-            doc.text("AURABILL", 14, 25);
+            doc.setFontSize(28);
+            doc.text("AURABILL", 14, 28);
             
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
-            doc.text("IT SOLUTIONS INVOICE", 14, 32);
-
-            doc.setTextColor(60, 60, 60);
-            doc.setFontSize(10);
+            doc.text("PROFESSIONAL INVOICING SOLUTION", 14, 36);
             
-            doc.text(`Invoice #: INV-${data.id}`, 150, 20, { align: "right" });
-            doc.text(`Date: ${new Date().toLocaleDateString('en-ZA')}`, 150, 26, { align: "right" });
-            doc.text(`Status: ${data.status}`, 150, 32, { align: "right" });
-
-            doc.setFillColor(240, 240, 240);
-            doc.roundedRect(14, 50, 90, 35, 3, 3, 'F');
+            // Meta
+            doc.setTextColor(60, 60, 60);
+            doc.text(`Invoice #: ${data.id}`, 150, 20, { align: "right" });
+            doc.text(`Date: ${new Date(data.timestamp).toLocaleDateString('en-ZA')}`, 150, 27, { align: "right" });
+            doc.text(`Status: ${data.status}`, 150, 34, { align: "right" });
+            
+            // Client Box
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(14, 55, 90, 40, 3, 3, 'F');
             doc.setFont("helvetica", "bold");
             doc.setTextColor(8, 145, 178);
-            doc.text("BILL TO:", 18, 58);
-            doc.setTextColor(40, 40, 40);
-            doc.setFontSize(11);
-            doc.text(data.clientName, 18, 66);
+            doc.text("BILL TO:", 18, 64);
+            doc.setTextColor(30, 41, 59);
+            doc.setFontSize(12);
+            doc.text(data.clientName, 18, 73);
             doc.setFont("helvetica", "normal");
             doc.setFontSize(9);
-            doc.text(data.clientEmail, 18, 73);
-            if(data.clientPhone) doc.text(data.clientPhone, 18, 79);
-
-            const tableBody = data.services.map((service, index) => {
-                const lineTotal = (service.qty || 1) * parseFloat(service.price || 0);
-                return [
-                    index + 1,
-                    service.desc,
-                    service.qty || 1,
-                    `R ${parseFloat(service.price || 0).toFixed(2)}`,
-                    `R ${lineTotal.toFixed(2)}`
-                ];
-            });
-
+            doc.text(data.clientEmail, 18, 80);
+            if (data.clientPhone) doc.text(data.clientPhone, 18, 86);
+            
+            // Table
+            const body = data.services.map((s, i) => [
+                i + 1,
+                s.desc,
+                s.qty || 1,
+                `R ${parseFloat(s.price).toFixed(2)}`,
+                `R ${((s.qty || 1) * parseFloat(s.price)).toFixed(2)}`
+            ]);
+            
             doc.autoTable({
-                startY: 95,
+                startY: 105,
                 head: [['#', 'Description', 'Qty', 'Unit Price', 'Total']],
-                body: tableBody,
+                body: body,
                 theme: 'grid',
                 headStyles: {
                     fillColor: [30, 41, 59],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    halign: 'center'
-                },
-                bodyStyles: {
-                    textColor: [50, 50, 50],
-                    fontSize: 10
+                    textColor: 255,
+                    fontStyle: 'bold'
                 },
                 columnStyles: {
-                    0: { cellWidth: 10, halign: 'center' },
-                    1: { cellWidth: 'auto', halign: 'left' },
-                    2: { cellWidth: 20, halign: 'center' },
-                    3: { cellWidth: 35, halign: 'right' },
-                    4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+                    0: { cellWidth: 15, halign: 'center' },
+                    2: { halign: 'center' },
+                    3: { halign: 'right' },
+                    4: { halign: 'right', fontStyle: 'bold' }
                 },
-                styles: {
-                    lineColor: [200, 200, 200],
-                    lineWidth: 0.1,
-                    cellPadding: 3
-                },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 252]
-                }
+                styles: { fontSize: 10 }
             });
-
-            const finalY = doc.lastAutoTable.finalY + 10;
             
+            // Totals
+            const y = doc.lastAutoTable.finalY + 15;
             doc.setFontSize(10);
-            doc.setTextColor(80, 80, 80);
+            doc.text("Subtotal:", 130, y);
+            doc.text(`R ${parseFloat(data.subtotal).toFixed(2)}`, 195, y, { align: "right" });
             
-            const totalsX = 120;
-            doc.text("Subtotal:", totalsX, finalY);
-            doc.text(`R ${parseFloat(data.subtotal).toFixed(2)}`, 195, finalY, { align: "right" });
-            
-            doc.text("VAT (15%):", totalsX, finalY + 7);
-            doc.text(`R ${parseFloat(data.vat).toFixed(2)}`, 195, finalY + 7, { align: "right" });
+            doc.text("VAT (15%):", 130, y + 8);
+            doc.text(`R ${parseFloat(data.vat).toFixed(2)}`, 195, y + 8, { align: "right" });
             
             doc.setDrawColor(200, 200, 200);
-            doc.line(totalsX, finalY + 12, 195, finalY + 12);
+            doc.line(130, y + 14, 195, y + 14);
             
             doc.setFont("helvetica", "bold");
-            doc.setTextColor(8, 145, 178);
             doc.setFontSize(14);
-            doc.text("TOTAL DUE:", totalsX, finalY + 22);
-            doc.text(`R ${parseFloat(data.total).toFixed(2)}`, 195, finalY + 22, { align: "right" });
-
+            doc.setTextColor(8, 145, 178);
+            doc.text("TOTAL:", 130, y + 26);
+            doc.text(`R ${parseFloat(data.total).toFixed(2)}`, 195, y + 26, { align: "right" });
+            
+            // Footer
             doc.setFont("helvetica", "normal");
             doc.setFontSize(9);
             doc.setTextColor(150, 150, 150);
-            doc.text("Thank you for your business • AuraBill IT Solutions • Payment due within 30 days", 105, 285, { align: "center" });
-
-            doc.save(`Invoice_${data.id}.pdf`);
+            doc.text("Thank you for your business • Payment due within 30 days", 105, 285, { align: "center" });
             
-            const pdfBase64 = doc.output('datauristring').split(',')[1];
-            const templateParams = {
-                to_email: data.clientEmail,
-                client_name: data.clientName,
-                invoice_id: data.id,
-                amount: data.total.toFixed(2),
-                content: pdfBase64
-            };
-            return emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams);
+            if (download) {
+                doc.save(`Invoice_${data.id}.pdf`);
+            }
+            
+            return doc.output('datauristring');
         }
 
+        // Form Handling
         document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = "Processing...";
-            submitBtn.disabled = true;
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+            
             const services = [];
             let subtotal = 0;
             
@@ -427,196 +908,186 @@
                 
                 if (desc && price > 0) {
                     services.push({ desc, qty, price });
-                    subtotal += (qty * price);
+                    subtotal += qty * price;
                 }
             });
             
             if (services.length === 0) {
-                showMessage("Please add at least one service item.");
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
+                showMessage('Please add at least one service item');
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Generate & Send Invoice';
                 return;
             }
             
             const vat = subtotal * VAT_RATE;
-            const total = subtotal + vat;
-            const clientName = document.getElementById('clientName').value;
-            const clientEmail = document.getElementById('clientEmail').value;
-            const clientPhone = document.getElementById('clientPhone').value;
-            
             const data = {
-                clientName: clientName,
-                clientEmail: clientEmail,
-                clientPhone: clientPhone,
-                services, subtotal, vat, total,
+                clientName: document.getElementById('clientName').value,
+                clientEmail: document.getElementById('clientEmail').value,
+                clientPhone: document.getElementById('clientPhone').value,
+                services,
+                subtotal,
+                vat,
+                total: subtotal + vat,
                 timestamp: Date.now(),
                 status: 'Sent'
             };
             
             try {
                 if (editKey) {
-                    data.id = allInvoices.find(inv => inv.key === editKey).id;
+                    data.id = allInvoices.find(i => i.key === editKey).id;
                     await db.ref('invoices/' + editKey).update(data);
-                    await processInvoiceAndEmail(data);
-                    showMessage("Invoice updated and re-sent!");
-                    resetForm();
-                    editKey = null;
                 } else {
                     const newRef = db.ref('invoices').push();
-                    data.id = newRef.key.slice(-6).toUpperCase();
+                    data.id = 'INV-' + newRef.key.slice(-6).toUpperCase();
                     await newRef.set(data);
-                    
-                    // Save client for future use
-                    saveClient(clientName, clientEmail, clientPhone);
-                    
-                    await processInvoiceAndEmail(data);
-                    showMessage("Invoice created and sent!");
-                    resetForm();
-                    viewInvoice(newRef.key);
                 }
+                
+                // Generate and send email
+                const pdfBase64 = await generatePDF(data, false);
+                
+                // EmailJS integration
+                try {
+                    await emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
+                        to_email: data.clientEmail,
+                        client_name: data.clientName,
+                        invoice_id: data.id,
+                        amount: data.total.toFixed(2),
+                        pdf_attachment: pdfBase64
+                    });
+                    showMessage('Invoice created and emailed successfully!');
+                } catch (emailErr) {
+                    showMessage('Invoice saved but email failed. Check SMTP settings.');
+                }
+                
+                resetForm();
+                showSection('invoices');
             } catch (err) {
-                console.error(err);
-                showMessage("Error occurred. Check console.");
+                showMessage('Error: ' + err.message);
             } finally {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
+                btn.disabled = false;
+                btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Generate & Send Invoice';
             }
         });
+
+        function saveAsDraft() {
+            const services = [];
+            document.querySelectorAll('#itemsContainer > div').forEach(row => {
+                const desc = row.querySelector('.service-desc').value.trim();
+                const qty = parseInt(row.querySelector('.service-qty').value) || 1;
+                const price = parseFloat(row.querySelector('.service-price').value) || 0;
+                if (desc) services.push({ desc, qty, price });
+            });
+            
+            const subtotal = services.reduce((sum, s) => sum + (s.qty * s.price), 0);
+            const data = {
+                clientName: document.getElementById('clientName').value || 'Draft Client',
+                clientEmail: document.getElementById('clientEmail').value || '',
+                clientPhone: document.getElementById('clientPhone').value || '',
+                services,
+                subtotal,
+                vat: subtotal * VAT_RATE,
+                total: subtotal * 1.15,
+                timestamp: Date.now(),
+                status: 'Draft'
+            };
+            
+            const newRef = db.ref('invoices').push();
+            data.id = 'DRAFT-' + newRef.key.slice(-6).toUpperCase();
+            newRef.set(data);
+            
+            showMessage('Saved as draft');
+            resetForm();
+            showSection('invoices');
+        }
 
         function resetForm() {
             document.getElementById('invoiceForm').reset();
             document.getElementById('itemsContainer').innerHTML = '';
+            document.getElementById('clientSelect').value = '';
             addItemRow();
-            document.getElementById('submitBtn').textContent = 'Generate, Save & Email PDF';
+            updateTotals();
+            editKey = null;
         }
 
-        db.ref('invoices').on('value', (snapshot) => {
-            allInvoices = [];
-            let totalRev = 0, pending = 0;
-            snapshot.forEach(child => {
-                const val = child.val();
-                allInvoices.push({ ...val, key: child.key });
-                totalRev += parseFloat(val.total || 0);
-                if (val.status !== 'Paid') pending += parseFloat(val.total || 0);
-            });
-            document.getElementById('totalRevenue').textContent = `R ${totalRev.toFixed(2)}`;
-            document.getElementById('pendingBalance').textContent = `R ${pending.toFixed(2)}`;
-            document.getElementById('invoiceCount').textContent = allInvoices.length;
-            renderTable();
-        });
-
-        function renderTable() {
-            const tbody = document.getElementById('invoiceTableBody');
-            tbody.innerHTML = '';
-            allInvoices.forEach(inv => {
-                const dateTime = new Date(inv.timestamp).toLocaleString('en-ZA');
-                let statusClass = inv.status === 'Paid' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-100 dark:hover:bg-slate-700/30 transition">
-                        <td class="p-4 font-mono text-cyan-500">${inv.id}</td>
-                        <td onclick="viewInvoice('${inv.key}')" class="p-4 cursor-pointer hover:text-cyan-600 dark:hover:text-cyan-400 group">
-                            <b class="group-hover:underline">${inv.clientName}</b><br>
-                            <small class="text-slate-500 dark:text-slate-400">${inv.clientEmail}</small>
-                        </td>
-                        <td class="p-4">${dateTime}</td>
-                        <td class="p-4 font-bold">R ${parseFloat(inv.total || 0).toFixed(2)}</td>
-                        <td class="p-4">
-                            <span class="px-2 py-1 rounded-full border text-[10px] uppercase ${statusClass}">
-                                ${inv.status}
-                            </span>
-                        </td>
-                        <td class="p-4 text-center">
-                            <button onclick="editInvoice('${inv.key}')" class="text-blue-400 hover:text-blue-600 mr-2">Edit</button>
-                            ${inv.status === 'Sent' ? `<button onclick="markPaid('${inv.key}')" class="text-green-400 hover:text-green-600 mr-2">Mark Paid</button>` : ''}
-                            <button onclick="deleteInvoice('${inv.key}')" class="text-red-400 hover:text-red-600">Delete</button>
-                        </td>
-                    </tr>`;
-            });
-        }
-
+        // Actions
         function viewInvoice(key) {
-            currentInvoice = allInvoices.find(inv => inv.key === key);
+            currentInvoice = allInvoices.find(i => i.key === key);
             if (!currentInvoice) return;
-
-            const date = new Date(currentInvoice.timestamp).toLocaleString('en-ZA');
+            
+            const date = new Date(currentInvoice.timestamp).toLocaleDateString('en-ZA');
             let servicesHtml = '';
-
+            
             currentInvoice.services.forEach(s => {
-                const lineTotal = (s.qty || 1) * parseFloat(s.price || s.amount);
+                const total = (s.qty || 1) * parseFloat(s.price);
                 servicesHtml += `
-                    <tr class="border-b border-slate-100 dark:border-slate-800">
-                        <td class="py-3 text-slate-700 dark:text-slate-300 text-sm">${s.desc}</td>
-                        <td class="py-3 text-center text-slate-500 dark:text-slate-400 text-sm">${s.qty || 1}</td>
-                        <td class="py-3 text-right font-medium text-sm">R ${parseFloat(s.price || s.amount).toFixed(2)}</td>
-                        <td class="py-3 text-right font-bold text-slate-800 dark:text-slate-200 text-sm">R ${lineTotal.toFixed(2)}</td>
-                    </tr>`;
+                    <tr class="border-b border-slate-100">
+                        <td class="py-3 text-slate-700">${s.desc}</td>
+                        <td class="py-3 text-center text-slate-500">${s.qty || 1}</td>
+                        <td class="py-3 text-right">R ${parseFloat(s.price).toFixed(2)}</td>
+                        <td class="py-3 text-right font-semibold">R ${total.toFixed(2)}</td>
+                    </tr>
+                `;
             });
-
+            
             document.getElementById('modalContent').innerHTML = `
                 <div class="space-y-6">
                     <div class="flex justify-between items-start">
                         <div>
-                            <div class="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">INVOICE NUMBER</div>
-                            <div class="text-3xl font-mono font-bold text-slate-900 dark:text-white">#INV-${currentInvoice.id}</div>
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Invoice Number</p>
+                            <h2 class="text-3xl font-bold text-slate-800">#${currentInvoice.id}</h2>
                         </div>
                         <div class="text-right">
-                            <div class="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">DATE ISSUED</div>
-                            <div class="font-medium text-slate-900 dark:text-white">${date}</div>
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Date</p>
+                            <p class="font-medium text-slate-800">${date}</p>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-8">
+                    
+                    <div class="grid grid-cols-2 gap-8 bg-slate-50 p-6 rounded-xl">
                         <div>
-                            <div class="text-xs uppercase text-slate-500 dark:text-slate-400 mb-2 font-bold tracking-wider">BILL TO</div>
-                            <div class="font-bold text-xl text-slate-900 dark:text-white">${currentInvoice.clientName}</div>
-                            <div class="text-slate-600 dark:text-slate-400">${currentInvoice.clientEmail}</div>
-                            ${currentInvoice.clientPhone ? `<div class="text-slate-600 dark:text-slate-400">${currentInvoice.clientPhone}</div>` : ''}
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Bill To</p>
+                            <p class="font-bold text-lg text-slate-800">${currentInvoice.clientName}</p>
+                            <p class="text-slate-600">${currentInvoice.clientEmail}</p>
+                            ${currentInvoice.clientPhone ? `<p class="text-slate-600">${currentInvoice.clientPhone}</p>` : ''}
                         </div>
                         <div class="text-right">
-                             <div class="text-xs uppercase text-slate-500 dark:text-slate-400 mb-2 font-bold tracking-wider">PAYMENT STATUS</div>
-                             <span class="px-3 py-1 rounded-full text-xs font-bold uppercase ${currentInvoice.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+                            <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Status</p>
+                            <span class="inline-flex px-4 py-2 rounded-full text-sm font-semibold ${currentInvoice.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : currentInvoice.status === 'Draft' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-700'}">
                                 ${currentInvoice.status}
-                             </span>
+                            </span>
                         </div>
                     </div>
-
+                    
                     <table class="w-full">
                         <thead>
-                            <tr class="border-b-2 border-slate-200 dark:border-slate-700">
-                                <th class="text-left py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">Description</th>
-                                <th class="text-center py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter w-20">Qty</th>
-                                <th class="text-right py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">Unit Price</th>
-                                <th class="text-right py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter">Total</th>
+                            <tr class="border-b-2 border-slate-200">
+                                <th class="text-left py-3 text-xs font-bold text-slate-500 uppercase">Description</th>
+                                <th class="text-center py-3 text-xs font-bold text-slate-500 uppercase w-24">Qty</th>
+                                <th class="text-right py-3 text-xs font-bold text-slate-500 uppercase w-32">Price</th>
+                                <th class="text-right py-3 text-xs font-bold text-slate-500 uppercase w-32">Total</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${servicesHtml}
-                        </tbody>
+                        <tbody>${servicesHtml}</tbody>
                     </table>
-
+                    
                     <div class="flex justify-end pt-4">
-                        <div class="w-full max-w-xs space-y-3">
-                            <div class="flex justify-between text-slate-600 dark:text-slate-400 text-sm">
+                        <div class="w-72 space-y-3">
+                            <div class="flex justify-between text-sm text-slate-600">
                                 <span>Subtotal</span>
                                 <span>R ${parseFloat(currentInvoice.subtotal).toFixed(2)}</span>
                             </div>
-                            <div class="flex justify-between text-slate-600 dark:text-slate-400 text-sm">
+                            <div class="flex justify-between text-sm text-slate-600">
                                 <span>VAT (15%)</span>
                                 <span>R ${parseFloat(currentInvoice.vat).toFixed(2)}</span>
                             </div>
-                            <div class="flex justify-between border-t border-slate-200 dark:border-slate-700 pt-3">
-                                <span class="font-bold text-slate-900 dark:text-white">TOTAL DUE</span>
-                                <span class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">R ${parseFloat(currentInvoice.total).toFixed(2)}</span>
+                            <div class="flex justify-between text-xl font-bold border-t border-slate-200 pt-3">
+                                <span class="text-slate-800">Total</span>
+                                <span class="text-cyan-600">R ${parseFloat(currentInvoice.total).toFixed(2)}</span>
                             </div>
                         </div>
                     </div>
-
-                    <div class="pt-8 text-center text-xs text-slate-400 dark:text-slate-500 border-t border-dashed border-slate-200 dark:border-slate-800">
-                        Thank you for choosing AuraBill IT Solutions. Payment is due within 30 days.
-                    </div>
                 </div>
             `;
-
+            
             document.getElementById('invoiceModal').classList.remove('hidden');
         }
 
@@ -625,68 +1096,70 @@
         }
 
         function downloadCurrentInvoice() {
-            if (!currentInvoice) return;
-            processInvoiceAndEmail(currentInvoice).catch(err => console.error(err));
+            if (currentInvoice) generatePDF(currentInvoice);
         }
 
         function editInvoice(key) {
             const inv = allInvoices.find(i => i.key === key);
             if (!inv) return;
+            
             editKey = key;
+            showSection('create');
+            
             document.getElementById('clientName').value = inv.clientName;
             document.getElementById('clientEmail').value = inv.clientEmail;
             document.getElementById('clientPhone').value = inv.clientPhone || '';
-            const container = document.getElementById('itemsContainer');
-            container.innerHTML = '';
-            inv.services.forEach(s => addItemRow(s.desc, s.qty || 1, s.price || s.amount));
-            document.getElementById('submitBtn').textContent = 'Update & Email PDF';
             
-            // Open sidebar on mobile when editing
-            if (window.innerWidth < 768) {
-                toggleSidebar();
-            }
-        }
-
-        function deleteInvoice(key) {
-            showConfirm("Delete this invoice permanently?", (yes) => {
-                if (yes) db.ref('invoices/' + key).remove();
-            });
+            document.getElementById('itemsContainer').innerHTML = '';
+            inv.services.forEach(s => addItemRow(s.desc, s.qty || 1, s.price));
+            updateTotals();
         }
 
         function markPaid(key) {
-            showConfirm("Mark this invoice as Paid?", (yes) => {
-                if (yes) db.ref('invoices/' + key).update({ status: 'Paid' });
+            db.ref('invoices/' + key).update({ status: 'Paid' });
+            showMessage('Invoice marked as paid');
+        }
+
+        function deleteInvoice(key) {
+            if (confirm('Are you sure you want to delete this invoice?')) {
+                db.ref('invoices/' + key).remove();
+            }
+        }
+
+        function exportInvoices() {
+            let csv = 'ID,Client,Email,Date,Amount,Status\n';
+            allInvoices.forEach(inv => {
+                csv += `${inv.id},${inv.clientName},${inv.clientEmail},${new Date(inv.timestamp).toLocaleDateString()},${inv.total},${inv.status}\n`;
             });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'invoices_export.csv';
+            a.click();
         }
 
-        function toggleTheme() {
-            document.body.classList.toggle('dark');
+        // SMTP Config
+        function showSMTConfig() {
+            document.getElementById('smtpModal').classList.remove('hidden');
         }
 
-        function showConfirm(message, callback) {
-            document.getElementById('confirmMessage').textContent = message;
-            document.getElementById('confirmModal').classList.remove('hidden');
-            confirmCallback = callback;
+        function closeSMTPModal() {
+            document.getElementById('smtpModal').classList.add('hidden');
         }
 
-        function confirmYes() {
-            if (confirmCallback) confirmCallback(true);
-            closeConfirm();
+        function saveSMTPConfig() {
+            // In real app, save to backend or localStorage
+            showMessage('SMTP settings saved (demo mode)');
+            closeSMTPModal();
         }
 
-        function confirmNo() {
-            if (confirmCallback) confirmCallback(false);
-            closeConfirm();
-        }
-
-        function closeConfirm() {
-            document.getElementById('confirmModal').classList.add('hidden');
-            confirmCallback = null;
-        }
-
+        // Utilities
         function showMessage(text) {
             document.getElementById('messageText').textContent = text;
             document.getElementById('messageModal').classList.remove('hidden');
+            setTimeout(closeMessage, 3000);
         }
 
         function closeMessage() {
